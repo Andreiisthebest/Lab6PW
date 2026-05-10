@@ -18,7 +18,8 @@ function App() {
     destinations, 
     addDestination, 
     removeDestination, 
-    updateStatus, 
+    updateStatus,
+    updateDestination,
     theme, 
     toggleTheme 
   } = useStore()
@@ -36,6 +37,7 @@ function App() {
   const [cost, setCost] = useState('')
   const [status, setStatus] = useState('Dreaming')
   const [priority, setPriority] = useState(3)
+  const [startDate, setStartDate] = useState('')
   
   // UI State
   const [filter, setFilter] = useState('All')
@@ -65,6 +67,9 @@ function App() {
       cost: parseFloat(cost) || 0,
       status,
       priority,
+      startDate,
+      score: 0,
+      feedback: '',
       dateAdded: new Date().toISOString(),
       imageUrl: fetchedImageUrl
     }
@@ -77,6 +82,7 @@ function App() {
     setCost('')
     setStatus('Dreaming')
     setPriority(3)
+    setStartDate('')
     setIsFormOpen(false)
   }
 
@@ -95,6 +101,29 @@ function App() {
     const progress = destinations.length ? Math.round((completedCount / destinations.length) * 100) : 0;
     
     return { totalCost, bookedCost, completedCount, progress }
+  }, [destinations])
+
+  const nextUpTrip = useMemo(() => {
+    const pending = destinations.filter(d => ['Booked', 'Planning'].includes(d.status));
+    if (!pending.length) return null;
+
+    return pending.sort((a, b) => {
+      // Priority 1: Booked > Planning
+      if (a.status === 'Booked' && b.status !== 'Booked') return -1;
+      if (b.status === 'Booked' && a.status !== 'Booked') return 1;
+
+      // Priority 2: Closest startDate (if defined)
+      const dateA = a.startDate ? new Date(a.startDate).getTime() : Infinity;
+      const dateB = b.startDate ? new Date(b.startDate).getTime() : Infinity;
+      return dateA - dateB;
+    })[0];
+  }, [destinations])
+
+  const leaderboard = useMemo(() => {
+    return destinations
+      .filter(d => d.status === 'Completed' && d.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5); // top 5
   }, [destinations])
 
   return (
@@ -185,9 +214,28 @@ function App() {
           
           <div className="bento-card mini">
             <span className="label">Next Up</span>
-            <h3>{destinations.find(d => d.status === 'Planning')?.location || 'No trips planned'}</h3>
+            <h3>{nextUpTrip?.location || 'No upcoming trips'}</h3>
+            {nextUpTrip?.startDate && <span className="label" style={{marginTop: 'auto'}}>{new Date(nextUpTrip.startDate).toLocaleDateString()}</span>}
           </div>
         </section>
+
+        {/* Leaderboard */}
+        {leaderboard.length > 0 && filter === 'All' && (
+          <section className="leaderboard-section" style={{marginBottom: '2rem', background: 'var(--bg-ele)', borderRadius: '16px', padding: '1.5rem'}}>
+            <h3 style={{marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem'}}><span style={{color: 'gold'}}>★</span> Hall of Fame (Top Trips)</h3>
+            <div style={{display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem'}}>
+              {leaderboard.map((trip, idx) => (
+                <div key={trip.id} style={{minWidth: '200px', background: 'var(--bg-surface)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)'}}>
+                  <div style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>#{idx + 1}</div>
+                  <h4 style={{margin: '0.5rem 0'}}>{trip.location}</h4>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <span style={{fontWeight: 'bold', color: 'var(--status-comp)'}}>{trip.score}/10</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {isFormOpen && (
           <div className="modal-overlay">
@@ -206,6 +254,15 @@ function App() {
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       required 
+                    />
+                  </div>
+
+                  <div className="form-group span-2">
+                    <label>Start Date (optional)</label>
+                    <input 
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
                     />
                   </div>
                   
@@ -297,20 +354,44 @@ function App() {
                 <div className="card-body">
                   {dest.notes && <p className="notes">{dest.notes}</p>}
                   
-                  <div className="card-footer">
-                    <div className="cost">${dest.cost.toLocaleString()}</div>
-                    <div className="actions">
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest.location)}`} target="_blank" rel="noreferrer" className="action-btn" title="View Map">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
-                      </a>
-                      <select 
-                        className="status-selector" 
-                        value={dest.status} 
-                        onChange={(e) => updateStatus(dest.id, e.target.value)}
-                      >
-                        {STATUES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                  <div className="card-footer" style={{flexDirection: 'column', gap: '1rem'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center'}}>
+                      <div className="cost">${dest.cost.toLocaleString()}</div>
+                      <div className="actions">
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dest.location)}`} target="_blank" rel="noreferrer" className="action-btn" title="View Map">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                        </a>
+                        <select 
+                          className="status-selector" 
+                          value={dest.status} 
+                          onChange={(e) => updateStatus(dest.id, e.target.value)}
+                        >
+                          {STATUES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
                     </div>
+                    
+                    {dest.status === 'Completed' && (
+                      <div style={{background: 'var(--bg-base)', padding: '0.75rem', borderRadius: '8px', width: '100%'}}>
+                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+                          <label style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Score (1-10)</label>
+                          <input 
+                            type="number" 
+                            min="1" max="10"
+                            style={{width: '60px', padding: '0.2rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: '4px'}}
+                            value={dest.score || ''}
+                            onChange={(e) => updateDestination(dest.id, {score: Number(e.target.value)})}
+                          />
+                        </div>
+                        <input 
+                          type="text" 
+                          placeholder="Add feedback..."
+                          style={{width: '100%', padding: '0.4rem', fontSize: '0.8rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: '4px'}}
+                          value={dest.feedback || ''}
+                          onChange={(e) => updateDestination(dest.id, {feedback: e.target.value})}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

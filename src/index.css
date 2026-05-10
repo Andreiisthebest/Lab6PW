@@ -6,6 +6,7 @@
   --bg-surface: #ffffff;
   --bg-ele: #e4e4e7;
   --bg-input: #ffffff;
+  --sidebar-bg: rgba(255, 255, 255, 0.7);
   --border-subtle: #e4e4e7;
   --border-strong: #d4d4d8;
   
@@ -27,6 +28,7 @@
   --bg-surface: #0a0a0a;
   --bg-ele: #141414;
   --bg-input: #000000;
+  --sidebar-bg: rgba(10, 10, 10, 0.7);
   --border-subtle: #262626;
   --border-strong: #404040;
   
@@ -85,7 +87,7 @@ body {
 
 .sidebar {
   width: 250px;
-  background: rgba(10, 10, 10, 0.7);
+  background: var(--sidebar-bg);
   backdrop-filter: blur(20px);
   border-right: 1px solid var(--border-subtle);
   padding: 1.5rem;

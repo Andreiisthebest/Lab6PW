@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Add relative base to work on GitHub Pages
+  base: '/Lab6PW/', // Specific base for GitHub Pages with repo name
 })

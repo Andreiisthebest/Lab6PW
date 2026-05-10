@@ -23,6 +23,10 @@ const useStore = create(
         destinations: state.destinations.map(d => d.id === id ? { ...d, status } : d)
       })),
 
+      updateDestination: (id, updates) => set((state) => ({
+        destinations: state.destinations.map(d => d.id === id ? { ...d, ...updates } : d)
+      })),
+
       toggleLike: (id) => set((state) => ({
         destinations: state.destinations.map(d => d.id === id ? { ...d, liked: !d.liked } : d)
       }))
