@@ -1,4 +1,6 @@
-﻿import { useState, useEffect, useMemo } from 'react'
+﻿import { useState, useMemo, useEffect } from 'react'
+import { Sun, Moon, Map, Plus, CreditCard, CheckCircle, Navigation } from 'lucide-react'
+import useStore from './store/useStore'
 import './index.css'
 
 const CONTINENT_IMAGES = {
@@ -12,14 +14,23 @@ const CONTINENT_IMAGES = {
 const STATUES = ['Dreaming', 'Planning', 'Booked', 'Completed']
 
 function App() {
-  const [destinations, setDestinations] = useState(() => {
-    const saved = localStorage.getItem('premium_destinations')
-    if (saved) return JSON.parse(saved)
-    return []
-  })
+  const { 
+    destinations, 
+    addDestination, 
+    removeDestination, 
+    updateStatus, 
+    theme, 
+    toggleTheme 
+  } = useStore()
+
+  // Apply theme to body
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   // Form State
   const [location, setLocation] = useState('')
+
   const [continent, setContinent] = useState('Europe')
   const [notes, setNotes] = useState('')
   const [cost, setCost] = useState('')
@@ -29,10 +40,6 @@ function App() {
   // UI State
   const [filter, setFilter] = useState('All')
   const [isFormOpen, setIsFormOpen] = useState(false)
-
-  useEffect(() => {
-    localStorage.setItem('premium_destinations', JSON.stringify(destinations))
-  }, [destinations])
 
   const handleAdd = async (e) => {
     e.preventDefault()
@@ -44,8 +51,6 @@ function App() {
       const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(location)}`);
       const data = await res.json();
       if (data.thumbnail && data.thumbnail.source) {
-        // Wikipedia thumbnails usually have the width at the end of the URL (e.g. .../320px-image.jpg)
-        // We can request a larger size by replacing the px value, or just use the original originalimage if available
         fetchedImageUrl = data.originalimage ? data.originalimage.source : data.thumbnail.source;
       }
     } catch (err) {
@@ -64,7 +69,7 @@ function App() {
       imageUrl: fetchedImageUrl
     }
     
-    setDestinations(prev => [newDest, ...prev])
+    addDestination(newDest)
     
     // Reset form
     setLocation('')
@@ -73,16 +78,6 @@ function App() {
     setStatus('Dreaming')
     setPriority(3)
     setIsFormOpen(false)
-  }
-
-  const removeDestination = (id) => {
-    setDestinations(prev => prev.filter(dest => dest.id !== id))
-  }
-
-  const updateStatus = (id, newStatus) => {
-    setDestinations(prev => prev.map(dest => 
-      dest.id === id ? { ...dest, status: newStatus } : dest
-    ))
   }
 
   const filteredDestinations = destinations.filter(dest => {
@@ -151,7 +146,13 @@ function App() {
       <main className="main-content">
         <header className="page-header">
           <h1>{filter === 'All' ? 'Command Center' : filter}</h1>
-          <div className="user-profile">
+          <div className="user-profile" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <button 
+              onClick={toggleTheme} 
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=1a1a1a" alt="User" />
           </div>
         </header>

@@ -1,9 +1,32 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
+  /* Default Light Theme */
+  --bg-base: #f4f4f5;
+  --bg-surface: #ffffff;
+  --bg-ele: #e4e4e7;
+  --bg-input: #ffffff;
+  --border-subtle: #e4e4e7;
+  --border-strong: #d4d4d8;
+  
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  
+  --accent-primary: #000000;
+  --accent-bg: #000000;
+  --accent-fg: #ffffff;
+  
+  --status-dream: #9333ea;
+  --status-plan: #2563eb;
+  --status-book: #ca8a04;
+  --status-comp: #16a34a;
+}
+
+[data-theme="dark"] {
   --bg-base: #000000;
   --bg-surface: #0a0a0a;
   --bg-ele: #141414;
+  --bg-input: #000000;
   --border-subtle: #262626;
   --border-strong: #404040;
   
@@ -27,6 +50,7 @@ body {
   background-color: var(--bg-base);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 * { box-sizing: border-box; }
